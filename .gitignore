@@ -226,3 +226,7 @@ pyrightconfig.json
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,python,visualstudiocode
+
+data/**
+varen/code/cachedir/**
+varen/model/varen_smal_real_horse.pkl
