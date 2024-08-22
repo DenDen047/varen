@@ -13,6 +13,15 @@ conda install pip
 pip install absl-py
 ```
 
+Or, use docker.
+
+```bash
+cd docker
+docker compose up -d
+
+docker compose exec varen bash
+```
+
 Clone the repository.
 Registed on the [project website](https://varen.is.tue.mpg.de).
 
@@ -42,11 +51,12 @@ varen/data/testset_inside_shape_space
 
 ## Running the code
 To retrain the model, from the `varen` directory:
-```
+```bash
 ./train.sh
 ```
+
 To compute the errors on the testset (by default on the outside shape space data):
-```
+```bash
 ./predict.sh
 ```
 
