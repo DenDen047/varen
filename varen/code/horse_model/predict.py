@@ -18,9 +18,8 @@ from .varen import VAREN
 curr_path = osp.dirname(osp.abspath(__file__))
 cache_path = osp.join(curr_path, '..', 'cachedir')
 flags.DEFINE_string('solutions_dir', './data/testset_outside_shape_space/', 'Where the testset data is')
-
+flags.DEFINE_integer('gpu_id', 0, 'Which gpu to use')
 opts = flags.FLAGS
-opts.gpu_id = 'cpu'
 
 
 def main(_):
@@ -50,7 +49,6 @@ def main(_):
         betas = torch.Tensor(betas)
 
         v = varen(betas=betas, pose=pose, trans=trans)
-
         v = v.detach()
 
         name = basename(frame)[3:-13]
@@ -59,7 +57,7 @@ def main(_):
         # Read the scan
         scan_ply = load_ply(join(opts.solutions_dir, name+'_input.ply'))
         v_scan = torch.Tensor(scan_ply[0])
-        if opts.gpu_id != 'cpu':
+        if opts.gpu_id != -1:
             v_scan = v_scan.cuda(device=opts.gpu_id)
 
         m2s2, s2m2 = chamfer_distance_here(v, v_scan[None, :, :])
@@ -69,7 +67,7 @@ def main(_):
         s2m = 1000.*torch.sqrt(s2m2)
 
         err[i] = (torch.mean(m2s) + torch.mean(s2m))/2.
-        err_m2s[i] = torch.mean(m2s[0,idx])
+        err_m2s[i] = torch.mean(m2s[0, idx])
 
         print('distance: ' + str(err[i]))
         print('m2s: ' + str(err_m2s[i]))
@@ -87,4 +85,3 @@ def main(_):
 
 if __name__ == '__main__':
     app.run(main)
-

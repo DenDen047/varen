@@ -12,13 +12,30 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "Train",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "varen.code.train_utils.main",
+            "args": [
+                "--name",
+                "varen_redo",
+                "--num_epochs",
+                "100",
+                "--gpu_id",
+                "-1"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Predict",
             "type": "debugpy",
             "request": "launch",
             "module": "varen.code.horse_model.predict",
             "args": [
                 "--name",
-                "varen"
+                "varen",
+                "--gpu_id",
+                "-1"
             ],
             "console": "integratedTerminal"
         }

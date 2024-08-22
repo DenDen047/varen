@@ -8,12 +8,12 @@ from torch import nn
 curr_path = osp.dirname(osp.abspath(__file__))
 cache_path = osp.join(curr_path, '..', 'cachedir')
 flags.DEFINE_string('name', 'varen', 'Network Name')
-flags.DEFINE_string('checkpoint_dir', osp.join(cache_path, 'snapshots'),
-                            'Root directory for output files')
+flags.DEFINE_string('checkpoint_dir', osp.join(cache_path, 'snapshots'), 'Root directory for output files')
 flags.DEFINE_integer('gpu_id', 0, 'Which gpu to use')
 flags.DEFINE_integer('num_train_epoch', 100, '')
 
 opts = flags.FLAGS
+
 
 def load_network(network, network_label, epoch_label, opts):
     save_filename = '{}_net_{}.pth'.format(network_label, epoch_label)
@@ -23,6 +23,7 @@ def load_network(network, network_label, epoch_label, opts):
     network.load_state_dict(torch.load(save_path), strict=False)
     return
 
+
 class VAREN(nn.Module):
     def __init__(self):
         super(VAREN, self).__init__()
@@ -30,7 +31,7 @@ class VAREN(nn.Module):
         model = horse_net.HorseNet(opts, N=1, reg_data=None)
         load_network(model, 'pred', opts.num_train_epoch, opts)
         model.eval()
-        if opts.gpu_id != 'cpu':
+        if opts.gpu_id != -1:
             self.model = model.cuda(device=opts.gpu_id)
         else:
             self.model = model
@@ -39,18 +40,16 @@ class VAREN(nn.Module):
         pose = pose[None, :]
         trans = trans[None, :]
         betas = betas[None, :]
-        if opts.gpu_id != 'cpu':
+        if opts.gpu_id != -1:
             pose = pose.cuda(device=opts.gpu_id)
             trans = trans.cuda(device=opts.gpu_id)
             betas = betas.cuda(device=opts.gpu_id)
 
         b_muscle, _ = self.model.smal.betas_muscle_predictor.forward(pose, betas)
 
-        v, _ = self.model.get_smal_verts(betas=betas, pose=pose, trans=trans,
-                betas_muscle=b_muscle)
+        v, _ = self.model.get_smal_verts(
+            betas=betas, pose=pose, trans=trans,
+            betas_muscle=b_muscle
+        )
 
-        return(v)
-
-
-
-
+        return v
