@@ -26,7 +26,9 @@ def batch_skew(vec, batch_size=None, opts=None):
                 ],
                 dim=1), [-1])
     out_shape = [batch_size * 9]
-    res = torch.Tensor(np.zeros(out_shape[0])).cuda(device=opts.gpu_id)
+    res = torch.Tensor(np.zeros(out_shape[0]))
+    if opts.gpu_id != -1:
+        res = res.cuda(device=opts.gpu_id)
     res[np.array(indices.flatten())] = updates
     res = torch.reshape(res, [batch_size, 3, 3])
 
@@ -49,9 +51,11 @@ def batch_rodrigues(theta, opts=None):
 
     outer = torch.matmul(r, r.transpose(1,2))
 
-    eyes = torch.eye(3).unsqueeze(0).repeat([batch_size, 1, 1]).cuda(device=opts.gpu_id)
+    eyes = torch.eye(3).unsqueeze(0).repeat([batch_size, 1, 1])
+    if opts.gpu_id != -1:
+        eyes = eyes.cuda(device=opts.gpu_id)
     H = batch_skew(r, batch_size=batch_size, opts=opts)
-    R = cos * eyes + (1 - cos) * outer + sin * H 
+    R = cos * eyes + (1 - cos) * outer + sin * H
 
     return R
 
@@ -108,7 +112,10 @@ def batch_global_rigid_transformation(Rs, Js, parent, rotate_base = False, opts=
     def make_A(R, t):
         # Rs is N x 3 x 3, ts is N x 3 x 1
         R_homo = torch.nn.functional.pad(R, (0,0,0,1,0,0))
-        t_homo = torch.cat([t, torch.ones([N, 1, 1]).cuda(device=opts.gpu_id)], 1)
+        ones = torch.ones([N, 1, 1])
+        if opts.gpu_id != -1:
+            ones = ones.cuda(device=opts.gpu_id)
+        t_homo = torch.cat([t, ones], 1)
         return torch.cat([R_homo, t_homo], 2)
 
     A0 = make_A(root_rotation, Js[:, 0])
@@ -129,7 +136,10 @@ def batch_global_rigid_transformation(Rs, Js, parent, rotate_base = False, opts=
     # but (final_bone - init_bone)
     # ---
     nJ = new_J.shape[1]
-    Js_w0 = torch.cat([Js, torch.zeros([N, nJ, 1, 1]).cuda(device=opts.gpu_id)], 2)
+    ones = torch.ones([N, nJ, 1, 1])
+    if opts.gpu_id != -1:
+        ones = ones.cuda(device=opts.gpu_id)
+    Js_w0 = torch.cat([Js, ones], 2)
     init_bone = torch.matmul(results, Js_w0)
     # Append empty 4 x 3:
     init_bone = torch.nn.functional.pad(init_bone, (3,0,0,0,0,0,0,0))

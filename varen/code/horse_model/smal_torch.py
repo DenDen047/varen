@@ -18,18 +18,24 @@ from pytorch3d.transforms import axis_angle_to_quaternion, quaternion_to_axis_an
 from .base_of_the_head_points import points as base_head_points
 from pytorch3d.io import load_ply
 
+
 # There are chumpy variables so convert them to numpy.
 def undo_chumpy(x):
     return x if isinstance(x, np.ndarray) else x.r
+
 
 class SMAL(nn.Module):
     def __init__(self, pkl_path, opts, seg_pkl_path=None, dtype=torch.float, logscale_part_list=None, sym_npy_path=None):
         super(SMAL, self).__init__()
 
         self.opts = opts
+        self.device = opts.gpu_id if opts.gpu_id != -1 else 'cpu'
         # -- Load SMPL params --
         with open(pkl_path, 'rb') as f:
-            dd = pkl.load(f)
+            print(f"Loading SMAL model from {pkl_path}")
+            # dd = pkl.load(f)
+            pickle_data = f.read()
+            dd = pkl.loads(pickle_data)
 
         f = dd['f']
         self.register_buffer('f', torch.Tensor(f.astype(int)).int())
@@ -50,7 +56,7 @@ class SMAL(nn.Module):
             undo_chumpy(dd['shapedirs']).copy(), [-1, self.num_betas]).T
         self.register_buffer('shapedirs', torch.Tensor(shapedir))
 
-        # Regressor for joint locations given shape 
+        # Regressor for joint locations given shape
         self.register_buffer('J_regressor', torch.Tensor(dd['J_regressor'].T.todense()))
 
         # Add additional information about the part segmentation
@@ -75,14 +81,13 @@ class SMAL(nn.Module):
         # LBS weights
         W = undo_chumpy(dd['weights'])
         W = np.log(W+1.)
-       
+
         self.log_weights = Variable(
-            torch.Tensor(W.copy()).to(device=self.opts.gpu_id),
+            torch.Tensor(W.copy()).to(device=self.device),
             requires_grad=False)
 
         # If using the muscles deformations
         self.use_muscle_deformations = False
-
 
     def __call__(self, betas=None, theta=None, trans=None, del_v=None, betas_muscle=None):
 
@@ -102,7 +107,7 @@ class SMAL(nn.Module):
         nBetas = betas.shape[1]
 
         # 1. Add shape blend shapes
-        
+
         if nBetas > 0:
             if del_v is None:
                 v_shaped = self.v_template + torch.reshape(torch.matmul(betas, self.shapedirs[:nBetas,:]), [-1, self.size[0], self.size[1]])
@@ -112,7 +117,7 @@ class SMAL(nn.Module):
             if del_v is None:
                 v_shaped = self.v_template.unsqueeze(0)
             else:
-                v_shaped = self.v_template + del_v 
+                v_shaped = self.v_template + del_v
 
         # 2. Infer shape-dependent joint locations.
         Jx = torch.matmul(v_shaped[:, :, 0], self.J_regressor)
@@ -134,16 +139,19 @@ class SMAL(nn.Module):
 
         # 3. Add pose blend shapes
         # N x nJ x 3 x 3
-        Rs = torch.reshape( batch_rodrigues(torch.reshape(theta, [-1, 3]), opts=self.opts), [-1, self.nJ, 3, 3])
+        Rs = torch.reshape(
+            batch_rodrigues(torch.reshape(theta, [-1, 3]), opts=self.opts),
+            shape=[-1, self.nJ, 3, 3]
+        )
 
         v_posed = v_shaped
 
-        #4. Get the global joint location
+        # 4. Get the global joint location
         self.J_transformed, A = batch_global_rigid_transformation(Rs, J, self.parents, opts=self.opts)
 
         # 5. Do skinning:
         num_batch = theta.shape[0]
-        
+
         weights_t = self.weights.repeat([num_batch, 1])
         W = torch.reshape(weights_t, [num_batch, -1, self.nJ])
 
@@ -151,13 +159,13 @@ class SMAL(nn.Module):
             torch.matmul(W, torch.reshape(A, [num_batch, self.nJ, 16])),
                 [num_batch, -1, 4, 4])
         v_posed_homo = torch.cat(
-                [v_posed, torch.ones([num_batch, v_posed.shape[1], 1]).to(device=self.opts.gpu_id)], 2)
+                [v_posed, torch.ones([num_batch, v_posed.shape[1], 1]).to(device=self.device)], 2)
         v_homo = torch.matmul(T, v_posed_homo.unsqueeze(-1))
 
         verts = v_homo[:, :, :3, 0]
 
         if trans is None:
-            trans = torch.zeros((num_batch,3)).to(device=self.opts.gpu_id)
+            trans = torch.zeros((num_batch,3)).to(device=self.device)
 
         verts = verts + trans[:,None,:]
 
@@ -165,7 +173,7 @@ class SMAL(nn.Module):
 
     def load_muscle_boundary_mesh(self):
         verts, faces = load_ply('./model_data/muscle_boundaries_w_head.ply')
-        faces = faces.to(device=self.opts.gpu_id)
+        faces = faces.to(device=self.device)
         return faces
 
     def define_muscle_deformations_variables(self, muscle_labels_path=None):
@@ -193,7 +201,7 @@ class SMAL(nn.Module):
         unused_idxs = list(set(all_idxs) & set(range(self.size[0])))
 
         # Define part-muscle assciation function
-        A = torch.zeros((self.nJ-1, self.num_muscles)).to(device=self.opts.gpu_id)
+        A = torch.zeros((self.nJ-1, self.num_muscles)).to(device=self.device)
         # Only assign for the parts that we consider affect the muscles (muscle_parts)
         for p in self.muscle_parts_idx:
             # Vertices of this part
@@ -214,7 +222,7 @@ class SMAL(nn.Module):
             self.muscle_idxs[i] = list(set(all_idxs) & set(np.where(self.muscle_labels==i)[0]))
 
 
-        self.Bm = torch.nn.ModuleList() 
+        self.Bm = torch.nn.ModuleList()
         for i in range(self.num_muscles):
             pose_d = 4
             self.Bm.append(nn.Sequential(nn.Linear(self.opts.muscle_betas_size*(self.nJ-1)*pose_d+self.opts.shape_betas_for_muscles, len(self.muscle_idxs[i])*3, bias=False)))
