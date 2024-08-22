@@ -19,7 +19,7 @@ flags.DEFINE_integer('num_samples', 10000, 'Number of samples')
 flags.DEFINE_boolean('shuffle', True, '')
 
 flags.DEFINE_string('solutions_dir', './data/registrations/', 'Data Directory')
-flags.DEFINE_string('decimated_dir', './data/scans/decimated_clean', 'Data Directory')
+flags.DEFINE_string('decimated_dir', './data/scans/decimated_clean/', 'Data Directory')
 flags.DEFINE_integer('input_size', 20000, '')
 flags.DEFINE_integer('load_start', 0, '')
 flags.DEFINE_integer('load_step', 1, '')
