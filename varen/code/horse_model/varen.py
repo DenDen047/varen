@@ -30,12 +30,19 @@ class VAREN(nn.Module):
         model = horse_net.HorseNet(opts, N=1, reg_data=None)
         load_network(model, 'pred', opts.num_train_epoch, opts)
         model.eval()
-        self.model = model.cuda(device=opts.gpu_id)
+        if opts.gpu_id != 'cpu':
+            self.model = model.cuda(device=opts.gpu_id)
+        else:
+            self.model = model
 
     def __call__(self, betas=None, pose=None, trans=None):
-        pose = pose[None,:].cuda(device=opts.gpu_id)
-        trans = trans[None,:].cuda(device=opts.gpu_id)
-        betas = betas[None,:].cuda(device=opts.gpu_id)
+        pose = pose[None, :]
+        trans = trans[None, :]
+        betas = betas[None, :]
+        if opts.gpu_id != 'cpu':
+            pose = pose.cuda(device=opts.gpu_id)
+            trans = trans.cuda(device=opts.gpu_id)
+            betas = betas.cuda(device=opts.gpu_id)
 
         b_muscle, _ = self.model.smal.betas_muscle_predictor.forward(pose, betas)
 

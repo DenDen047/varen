@@ -18,9 +18,11 @@ from pytorch3d.transforms import axis_angle_to_quaternion, quaternion_to_axis_an
 from .base_of_the_head_points import points as base_head_points
 from pytorch3d.io import load_ply
 
+
 # There are chumpy variables so convert them to numpy.
 def undo_chumpy(x):
     return x if isinstance(x, np.ndarray) else x.r
+
 
 class SMAL(nn.Module):
     def __init__(self, pkl_path, opts, seg_pkl_path=None, dtype=torch.float, logscale_part_list=None, sym_npy_path=None):
@@ -86,7 +88,6 @@ class SMAL(nn.Module):
         # If using the muscles deformations
         self.use_muscle_deformations = False
 
-
     def __call__(self, betas=None, theta=None, trans=None, del_v=None, betas_muscle=None):
 
         if betas is not None and len(betas.shape) == 1:
@@ -137,11 +138,14 @@ class SMAL(nn.Module):
 
         # 3. Add pose blend shapes
         # N x nJ x 3 x 3
-        Rs = torch.reshape( batch_rodrigues(torch.reshape(theta, [-1, 3]), opts=self.opts), [-1, self.nJ, 3, 3])
+        Rs = torch.reshape(
+            batch_rodrigues(torch.reshape(theta, [-1, 3]), opts=self.opts),
+            shape=[-1, self.nJ, 3, 3]
+        )
 
         v_posed = v_shaped
 
-        #4. Get the global joint location
+        # 4. Get the global joint location
         self.J_transformed, A = batch_global_rigid_transformation(Rs, J, self.parents, opts=self.opts)
 
         # 5. Do skinning:

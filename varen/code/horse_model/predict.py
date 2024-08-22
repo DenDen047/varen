@@ -20,18 +20,19 @@ cache_path = osp.join(curr_path, '..', 'cachedir')
 flags.DEFINE_string('solutions_dir', './data/testset_outside_shape_space/', 'Where the testset data is')
 
 opts = flags.FLAGS
+opts.gpu_id = 'cpu'
+
 
 def main(_):
-
     varen = VAREN()
     seg_data = pkl.load(open('varen/model/varen_smal_real_horse_seg_data.pkl', 'rb'))
-    body_parts = ['Pelvis', 'Spine', 'Spine1', 'Spine2', 'LScapula', 'RScapula', 'LFLeg1', 'LFLeg2', 'LFLeg3', 'RFLeg1', 'RFLeg2', 'RFLeg3','LBLeg1', 'LBLeg2', 'LBLeg3', 'RBLeg1', 'RBLeg2', 'RBLeg3','Neck', 'Neck1', 'Neck2']
+    body_parts = ['Pelvis', 'Spine', 'Spine1', 'Spine2', 'LScapula', 'RScapula', 'LFLeg1', 'LFLeg2', 'LFLeg3', 'RFLeg1', 'RFLeg2', 'RFLeg3', 'LBLeg1', 'LBLeg2', 'LBLeg3', 'RBLeg1', 'RBLeg2', 'RBLeg3', 'Neck', 'Neck1', 'Neck2']
 
     idx = []
     for part in body_parts:
         idx += list(seg_data['part2bodyPoints'][seg_data['parts'][part]])
 
-    F = sorted(glob.glob(opts.solutions_dir+'*.npy'))
+    F = sorted(glob.glob(os.path.join(opts.solutions_dir, '*.npy')))
     N = len(F)
     err = torch.zeros(N)
     err_m2s = torch.zeros(N)
@@ -57,9 +58,11 @@ def main(_):
 
         # Read the scan
         scan_ply = load_ply(join(opts.solutions_dir, name+'_input.ply'))
-        v_scan = torch.Tensor(scan_ply[0]).cuda(device=opts.gpu_id)
+        v_scan = torch.Tensor(scan_ply[0])
+        if opts.gpu_id != 'cpu':
+            v_scan = v_scan.cuda(device=opts.gpu_id)
 
-        m2s2, s2m2 = chamfer_distance_here(v, v_scan[None,:,:])
+        m2s2, s2m2 = chamfer_distance_here(v, v_scan[None, :, :])
 
         # Take the square root and convert to mm
         m2s = 1000.*torch.sqrt(m2s2)

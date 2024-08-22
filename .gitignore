@@ -230,3 +230,4 @@ pyrightconfig.json
 data/**
 varen/code/cachedir/**
 varen/model/varen_smal_real_horse.pkl
+*.npy
