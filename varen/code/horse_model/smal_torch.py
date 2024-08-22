@@ -29,6 +29,7 @@ class SMAL(nn.Module):
         super(SMAL, self).__init__()
 
         self.opts = opts
+        self.device = opts.gpu_id if opts.gpu_id != -1 else 'cpu'
         # -- Load SMPL params --
         with open(pkl_path, 'rb') as f:
             print(f"Loading SMAL model from {pkl_path}")
@@ -82,7 +83,7 @@ class SMAL(nn.Module):
         W = np.log(W+1.)
 
         self.log_weights = Variable(
-            torch.Tensor(W.copy()).to(device=self.opts.gpu_id),
+            torch.Tensor(W.copy()).to(device=self.device),
             requires_grad=False)
 
         # If using the muscles deformations
@@ -158,13 +159,13 @@ class SMAL(nn.Module):
             torch.matmul(W, torch.reshape(A, [num_batch, self.nJ, 16])),
                 [num_batch, -1, 4, 4])
         v_posed_homo = torch.cat(
-                [v_posed, torch.ones([num_batch, v_posed.shape[1], 1]).to(device=self.opts.gpu_id)], 2)
+                [v_posed, torch.ones([num_batch, v_posed.shape[1], 1]).to(device=self.device)], 2)
         v_homo = torch.matmul(T, v_posed_homo.unsqueeze(-1))
 
         verts = v_homo[:, :, :3, 0]
 
         if trans is None:
-            trans = torch.zeros((num_batch,3)).to(device=self.opts.gpu_id)
+            trans = torch.zeros((num_batch,3)).to(device=self.device)
 
         verts = verts + trans[:,None,:]
 
@@ -172,7 +173,7 @@ class SMAL(nn.Module):
 
     def load_muscle_boundary_mesh(self):
         verts, faces = load_ply('./model_data/muscle_boundaries_w_head.ply')
-        faces = faces.to(device=self.opts.gpu_id)
+        faces = faces.to(device=self.device)
         return faces
 
     def define_muscle_deformations_variables(self, muscle_labels_path=None):
@@ -200,7 +201,7 @@ class SMAL(nn.Module):
         unused_idxs = list(set(all_idxs) & set(range(self.size[0])))
 
         # Define part-muscle assciation function
-        A = torch.zeros((self.nJ-1, self.num_muscles)).to(device=self.opts.gpu_id)
+        A = torch.zeros((self.nJ-1, self.num_muscles)).to(device=self.device)
         # Only assign for the parts that we consider affect the muscles (muscle_parts)
         for p in self.muscle_parts_idx:
             # Vertices of this part

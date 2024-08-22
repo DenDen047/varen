@@ -32,12 +32,13 @@ class BetasMusclePredictor(nn.Module):
         self.num_muscle = num_muscle
         self.num_pose = num_pose
 
-        self.muscledef = nn.Linear(self.num_pose+opts.shape_betas_for_muscles, num_muscle, bias=False).to(device=opts.gpu_id)
+        self.device = opts.gpu_id if opts.gpu_id != -1 else 'cpu'
+        self.muscledef = nn.Linear(self.num_pose+opts.shape_betas_for_muscles, num_muscle, bias=False).to(device=self.device)
         torch.nn.init.normal_(self.muscledef.weight, mean=0.0, std=0.001)
-        A_here = torch.zeros(num_muscle, self.num_pose).to(device=opts.gpu_id)
+        A_here = torch.zeros(num_muscle, self.num_pose).to(device=self.device)
         np.save('A_init.npy', A.detach().cpu().numpy())
         if opts.shape_betas_for_muscles > 0:
-            A_here = torch.zeros(num_muscle, self.num_pose+opts.shape_betas_for_muscles).to(device=opts.gpu_id)
+            A_here = torch.zeros(num_muscle, self.num_pose+opts.shape_betas_for_muscles).to(device=self.device)
         for p in range(A.shape[0]):
             for k in range(r_dim):
                 A_here[:, r_dim * p + k] = A[p, :]
@@ -68,6 +69,7 @@ class HorseNet(nn.Module):
     def __init__(self, opts, N=0, reg_data=None):
         super(HorseNet, self).__init__()
         self.opts = opts
+        self.device = opts.gpu_id if opts.gpu_id != -1 else 'cpu'
 
         # Instantiate the SMAL model in Torch
         model_path = os.path.join(self.opts.model_dir, self.opts.model_name)
@@ -83,14 +85,15 @@ class HorseNet(nn.Module):
                 init_trans = reg_data[:, 0:3]
                 init_pose = reg_data[:, 3:self.smal.nJ*3+3]
                 init_betas = reg_data[:, self.smal.nJ*3+3::]
-                self.betas = Variable(init_betas.to(device=opts.gpu_id), requires_grad=False)
-                self.pose = Variable(init_pose.to(device=opts.gpu_id), requires_grad=False)
-                self.trans = Variable(init_trans.to(device=opts.gpu_id), requires_grad=False)
+
+                self.betas = Variable(init_betas.to(device=self.device), requires_grad=False)
+                self.pose = Variable(init_pose.to(device=self.device), requires_grad=False)
+                self.trans = Variable(init_trans.to(device=self.device), requires_grad=False)
             else:
                 if N > 0:
-                    self.betas = torch.nn.Parameter(torch.zeros(N, self.smal.num_betas).to(device=opts.gpu_id), requires_grad=True)
-                    self.pose = torch.nn.Parameter(torch.zeros(N, self.smal.nJ*3).to(device=opts.gpu_id), requires_grad=True)
-                    self.trans = torch.nn.Parameter(torch.zeros(N, 3).to(device=opts.gpu_id), requires_grad=True)
+                    self.betas = torch.nn.Parameter(torch.zeros(N, self.smal.num_betas).to(device=self.device), requires_grad=True)
+                    self.pose = torch.nn.Parameter(torch.zeros(N, self.smal.nJ*3).to(device=self.device), requires_grad=True)
+                    self.trans = torch.nn.Parameter(torch.zeros(N, 3).to(device=self.device), requires_grad=True)
 
         muscle_labels_path = os.path.join(self.opts.model_dir, self.opts.muscle_labels_name)
         A = self.smal.define_muscle_deformations_variables(muscle_labels_path=muscle_labels_path)

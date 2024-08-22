@@ -22,7 +22,6 @@ flags.DEFINE_float('distance_weight', 1000, '')
 flags.DEFINE_boolean('reg_on_boundary', True, '')
 flags.DEFINE_boolean('use_A_loss', True, '')
 flags.DEFINE_float('A_loss_weight', 1000, '')
-
 opts = flags.FLAGS
 
 
@@ -37,7 +36,7 @@ class HorseTrainer(train_utils.Trainer):
         if opts.num_pretrain_epochs > 0:
             self.load_network(self.model, 'pred', opts.num_pretrain_epochs)
 
-        self.model = self.model.cuda(device=opts.gpu_id)
+        self.model = self.model.to(device=self.device)
 
         if opts.num_pretrain_epochs > 0:
             self.load_network(self.model, 'pred', opts.num_pretrain_epochs)
@@ -55,7 +54,7 @@ class HorseTrainer(train_utils.Trainer):
     def set_input(self, batch):
         input_data = batch['v'].type(torch.FloatTensor)
         self.input_ids = batch['ids']
-        self.input_v = Variable(input_data.cuda(device=self.opts.gpu_id), requires_grad=False)
+        self.input_v = Variable(input_data.to(device=self.device), requires_grad=False)
 
     def forward(self):
         self.loss = 0

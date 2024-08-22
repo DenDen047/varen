@@ -18,7 +18,6 @@ from .varen import VAREN
 curr_path = osp.dirname(osp.abspath(__file__))
 cache_path = osp.join(curr_path, '..', 'cachedir')
 flags.DEFINE_string('solutions_dir', './data/testset_outside_shape_space/', 'Where the testset data is')
-flags.DEFINE_integer('gpu_id', 0, 'Which gpu to use')
 opts = flags.FLAGS
 
 

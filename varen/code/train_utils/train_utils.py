@@ -5,9 +5,7 @@ from ..utils.visualizer import Visualizer
 
 import os
 import os.path as osp
-
 import numpy as np
-
 
 curr_path = osp.dirname(osp.abspath(__file__))
 cache_path = osp.join(curr_path, '..', 'cachedir')
@@ -36,6 +34,7 @@ def set_bn_eval(m):
 class Trainer():
     def __init__(self, opts):
         self.opts = opts
+        self.device = opts.gpu_id if opts.gpu_id != -1 else 'cpu'
         self.gpu_id = opts.gpu_id
         self.Tensor = torch.cuda.FloatTensor if (self.gpu_id is not None) else torch.Tensor
         self.save_dir = osp.join(opts.checkpoint_dir, opts.name)
@@ -66,7 +65,10 @@ class Trainer():
 
     def save(self, epoch_prefix):
         '''Saves the model.'''
-        self.save_network(self.model, 'pred', epoch_prefix, gpu_id=self.opts.gpu_id)
+        if self.opts.gpu_id != -1:
+            self.save_network(self.model, 'pred', epoch_prefix, gpu_id=self.opts.gpu_id)
+        else:
+            self.save_network(self.model, 'pred', epoch_prefix)
         return
 
     def init_training(self):

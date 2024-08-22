@@ -39,18 +39,16 @@ from .do_not_use_frames import do_not_use
 
 class HorseDataset(Dataset):
     def __init__(self, opts):
-
         self.opts = opts
 
         # Read the list of the horses from the prototypes
         horse_list = prototype_clip.keys()
-
         nHorses = len(horse_list)
 
         # Read the data with the scan2Mesh information
         keys = np.load('./model_data/MaxScanToMeshByName_names.npy')
         values = np.load('./model_data/MaxScanToMeshByName_values.npy')
-        assert(len(keys) == len(values))
+        assert len(keys) == len(values)
         MaxScanToMesh = dict(zip(keys, values))
 
         # For each horse, read the data
@@ -66,7 +64,7 @@ class HorseDataset(Dataset):
                     # Read the number of frames for this clip
                     F = sorted(glob(join(clips_path, '*_'+horse+'_*.npy')))
                     frames = [int(f[-19:-13]) for f in F]
-                    print('Horse: ' + horse +  ' Frames: ' + str(len(F)))
+                    print('Horse: ' + horse + ' Frames: ' + str(len(F)))
                     for frame in range(self.opts.load_start, len(frames), self.opts.load_step):
                         scan_name = basename(F[frame])[:-13]
                         if (scan_name[3:] not in keys):
@@ -76,7 +74,7 @@ class HorseDataset(Dataset):
                             continue
 
                         clip = scan_name[9:-7]
-                        input_path = join(opts.decimated_dir,scan_name[3:] + '.ply')
+                        input_path = join(opts.decimated_dir, scan_name[3:] + '.ply')
                         sol_path = F[frame]
 
                         data = np.load(open(sol_path, 'rb'))
@@ -86,7 +84,7 @@ class HorseDataset(Dataset):
                     self.reg_data += reg_data
                     self.filenames += filenames
 
-        print(len(self.filenames))
+        print('len(self.filenames):', len(self.filenames))
 
         if opts.num_samples < len(self.filenames):
             # Select a set of random numbers
@@ -96,17 +94,15 @@ class HorseDataset(Dataset):
             self.filenames = F
             self.reg_data = R
         self.num_samples = len(self.filenames)
-        print(self.num_samples)
-        for f in self.filenames:
-            print(f)
+        print('num_samples:', self.num_samples)
+        # for f in self.filenames:
+        #     print(f)
         self.reg_data = torch.FloatTensor(np.asarray(self.reg_data))
 
-
     def forward(self, index):
-
         verts, faces = load_ply(self.filenames[index])
         meshes = Meshes(verts=[verts], faces=[faces])
-        v = sample_points_from_meshes(meshes, num_samples = self.opts.input_size)[0]
+        v = sample_points_from_meshes(meshes, num_samples=self.opts.input_size)[0]
         x = {'v': v, 'ids': index}
 
         return x
