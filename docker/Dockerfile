@@ -53,6 +53,8 @@ RUN python3 -m pip install "git+https://github.com/facebookresearch/pytorch3d.gi
 # other packages
 RUN apt install -y ffmpeg libsm6 libxext6
 RUN python3 -m pip install absl-py
+RUN python3 -m pip install chumpy
+RUN python3 -m pip install numpy==1.23.1
 
 # Add user. Without this, following process is executed as admin.
 RUN groupadd -g ${GID} ${GROUP_NAME} \

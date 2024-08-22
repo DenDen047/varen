@@ -20,7 +20,7 @@ flags.DEFINE_integer('save_epoch_freq', 1000, 'save model every k epochs')
 flags.DEFINE_boolean('print_scalars', True, 'whether to print scalars')
 flags.DEFINE_integer('print_freq', 20, 'scalar logging frequency')
 flags.DEFINE_float('beta1', 0.9, 'Momentum term of adam')
-flags.DEFINE_float('learning_rate', 1e-5, 'learning rate') 
+flags.DEFINE_float('learning_rate', 1e-5, 'learning rate')
 flags.DEFINE_integer('num_epochs', 100, 'epochs')
 flags.DEFINE_integer('num_train_epoch', 100, 'used by predictor')
 flags.DEFINE_integer('num_pretrain_epochs', 0, 'If >0, we will pretain from an existing saved model.')
@@ -31,6 +31,7 @@ def set_bn_eval(m):
     classname = m.__class__.__name__
     if (classname.find('BatchNorm1d') != -1) or (classname.find('BatchNorm2d') != -1):
         m.eval()
+
 
 class Trainer():
     def __init__(self, opts):
@@ -99,7 +100,6 @@ class Trainer():
         raise NotImplementedError
 
     def train(self):
-
         self.smoothed_loss = 0
         self.early_stop = True
 
@@ -113,21 +113,19 @@ class Trainer():
                 for i, batch in enumerate(self.dataloader):
 
                     self.set_input(batch)
-
                     self.optimizer.zero_grad()
 
                     self.forward()
 
-                    self.smoothed_loss = self.smoothed_loss*0.99+0.01*self.loss
+                    self.smoothed_loss = self.smoothed_loss*0.99 + 0.01*self.loss
 
                     self.loss.backward()
-
                     self.optimizer.step()
 
                     total_steps += 1
                     epoch_iter += 1
 
-                if opts.print_scalars: 
+                if opts.print_scalars:
                     scalars = self.get_current_scalars()
                     self.visualizer.print_current_scalars(epoch, epoch_iter, scalars)
 

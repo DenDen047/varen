@@ -29,7 +29,10 @@ class SMAL(nn.Module):
         self.opts = opts
         # -- Load SMPL params --
         with open(pkl_path, 'rb') as f:
-            dd = pkl.load(f)
+            print(f"Loading SMAL model from {pkl_path}")
+            # dd = pkl.load(f)
+            pickle_data = f.read()
+            dd = pkl.loads(pickle_data)
 
         f = dd['f']
         self.register_buffer('f', torch.Tensor(f.astype(int)).int())
@@ -50,7 +53,7 @@ class SMAL(nn.Module):
             undo_chumpy(dd['shapedirs']).copy(), [-1, self.num_betas]).T
         self.register_buffer('shapedirs', torch.Tensor(shapedir))
 
-        # Regressor for joint locations given shape 
+        # Regressor for joint locations given shape
         self.register_buffer('J_regressor', torch.Tensor(dd['J_regressor'].T.todense()))
 
         # Add additional information about the part segmentation
@@ -75,7 +78,7 @@ class SMAL(nn.Module):
         # LBS weights
         W = undo_chumpy(dd['weights'])
         W = np.log(W+1.)
-       
+
         self.log_weights = Variable(
             torch.Tensor(W.copy()).to(device=self.opts.gpu_id),
             requires_grad=False)
@@ -102,7 +105,7 @@ class SMAL(nn.Module):
         nBetas = betas.shape[1]
 
         # 1. Add shape blend shapes
-        
+
         if nBetas > 0:
             if del_v is None:
                 v_shaped = self.v_template + torch.reshape(torch.matmul(betas, self.shapedirs[:nBetas,:]), [-1, self.size[0], self.size[1]])
@@ -112,7 +115,7 @@ class SMAL(nn.Module):
             if del_v is None:
                 v_shaped = self.v_template.unsqueeze(0)
             else:
-                v_shaped = self.v_template + del_v 
+                v_shaped = self.v_template + del_v
 
         # 2. Infer shape-dependent joint locations.
         Jx = torch.matmul(v_shaped[:, :, 0], self.J_regressor)
@@ -143,7 +146,7 @@ class SMAL(nn.Module):
 
         # 5. Do skinning:
         num_batch = theta.shape[0]
-        
+
         weights_t = self.weights.repeat([num_batch, 1])
         W = torch.reshape(weights_t, [num_batch, -1, self.nJ])
 
@@ -214,7 +217,7 @@ class SMAL(nn.Module):
             self.muscle_idxs[i] = list(set(all_idxs) & set(np.where(self.muscle_labels==i)[0]))
 
 
-        self.Bm = torch.nn.ModuleList() 
+        self.Bm = torch.nn.ModuleList()
         for i in range(self.num_muscles):
             pose_d = 4
             self.Bm.append(nn.Sequential(nn.Linear(self.opts.muscle_betas_size*(self.nJ-1)*pose_d+self.opts.shape_betas_for_muscles, len(self.muscle_idxs[i])*3, bias=False)))

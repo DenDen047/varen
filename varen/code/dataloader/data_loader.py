@@ -19,7 +19,7 @@ flags.DEFINE_integer('num_samples', 10000, 'Number of samples')
 flags.DEFINE_boolean('shuffle', True, '')
 
 flags.DEFINE_string('solutions_dir', './data/registrations/', 'Data Directory')
-flags.DEFINE_string('decimated_dir', './data/scans/decimated_cleaned', 'Data Directory')
+flags.DEFINE_string('decimated_dir', './data/scans/decimated_clean', 'Data Directory')
 flags.DEFINE_integer('input_size', 20000, '')
 flags.DEFINE_integer('load_start', 0, '')
 flags.DEFINE_integer('load_step', 1, '')
@@ -27,7 +27,7 @@ flags.DEFINE_integer('load_step', 1, '')
 opts = flags.FLAGS
 
 from pytorch3d.io import load_obj, load_objs_as_meshes, load_ply, save_obj
-from pytorch3d.ops import sample_points_from_meshes 
+from pytorch3d.ops import sample_points_from_meshes
 from pytorch3d.structures import Meshes
 dataScale = 1000.
 
@@ -35,6 +35,7 @@ from .horse_prototypes_data import prototype_clip, prototype_frames, horse_captu
 import numpy as np
 from os.path import basename, split
 from .do_not_use_frames import do_not_use
+
 
 class HorseDataset(Dataset):
     def __init__(self, opts):
@@ -59,32 +60,32 @@ class HorseDataset(Dataset):
         for horse in horse_list:
             clips_path = opts.solutions_dir
             if exists(clips_path):
-                if True: 
+                if True:
                     filenames = []
                     reg_data = []
                     # Read the number of frames for this clip
-                    F = sorted(glob(join(clips_path, '*_'+horse+'_*.npy'))) 
+                    F = sorted(glob(join(clips_path, '*_'+horse+'_*.npy')))
                     frames = [int(f[-19:-13]) for f in F]
                     print('Horse: ' + horse +  ' Frames: ' + str(len(F)))
                     for frame in range(self.opts.load_start, len(frames), self.opts.load_step):
-                        scan_name = basename(F[frame])[:-13] 
+                        scan_name = basename(F[frame])[:-13]
                         if (scan_name[3:] not in keys):
                             continue
-                            
+
                         if (MaxScanToMesh[scan_name[3:]] > 0.002) or do_not_use(scan_name[3:]):
                             continue
 
                         clip = scan_name[9:-7]
                         input_path = join(opts.decimated_dir,scan_name[3:] + '.ply')
-                        sol_path = F[frame] 
+                        sol_path = F[frame]
 
                         data = np.load(open(sol_path, 'rb'))
                         filenames += [input_path]
-                        reg_data += [data[:-2]] 
+                        reg_data += [data[:-2]]
                         n = n+1
                     self.reg_data += reg_data
                     self.filenames += filenames
-   
+
         print(len(self.filenames))
 
         if opts.num_samples < len(self.filenames):
@@ -99,7 +100,7 @@ class HorseDataset(Dataset):
         for f in self.filenames:
             print(f)
         self.reg_data = torch.FloatTensor(np.asarray(self.reg_data))
-        
+
 
     def forward(self, index):
 
@@ -118,6 +119,7 @@ class HorseDataset(Dataset):
 
     def __get_item__(self, index):
         return self.forward(index)
+
 
 def horse_data_loader(opts):
     dset = HorseDataset(opts)
